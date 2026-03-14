@@ -747,4 +747,15 @@ printBtn.addEventListener('click', () => {
     printWindow.focus();
     printWindow.print();
   }, 250);
+  if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => {
+        console.log('Service Worker Registered');
+      })
+      .catch(error => {
+        console.error('Service Worker Error:', error);
+      });
+  });
+}
 });
