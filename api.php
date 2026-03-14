@@ -12,7 +12,8 @@ if (!is_array($config) || !isset($config['db'])) {
 }
 
 try {
-    $dsn = "mysql:host={$config['db']['host']};dbname={$config['db']['name']};charset={$config['db']['charset']}";
+    $port = $config['db']['port'] ?? 3306;
+    $dsn = "mysql:host={$config['db']['host']};port={$port};dbname={$config['db']['name']};charset={$config['db']['charset']}";
     $pdo = new PDO(
         $dsn,
         $config['db']['user'],
@@ -22,6 +23,12 @@ try {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]
     );
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'فشل الاتصال بقاعدة البيانات: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
