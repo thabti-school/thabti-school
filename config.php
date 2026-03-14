@@ -2,10 +2,11 @@
 
 return [
     'db' => [
-        'host' => 'localhost',
-        'name' => 'thabti',
-        'user' => 'root',
-        'pass' => '',
+        'host' => 'ضع_هنا_عنوان_الخادم',
+        'port' => 3306,
+        'name' => 'اسم_قاعدة_البيانات',
+        'user' => 'اسم_المستخدم',
+        'pass' => 'كلمة_المرور',
         'charset' => 'utf8mb4',
     ],
 
