@@ -4,7 +4,7 @@ return [
     'db' => [
         'host' => 'mysql.example.com',
 'port' => 3306,
-        'name' => 'اسم_قاعدة_البيانات',
+        'name' => 'thabti',
         'user' => 'اسم_المستخدم',
         'pass' => 'كلمة_المرور',
         'charset' => 'utf8mb4',
