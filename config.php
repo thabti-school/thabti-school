@@ -2,11 +2,11 @@
 
 return [
     'db' => [
-        'host' => 'mysql.example.com',
-'port' => 3306,
-        'name' => 'thabti',
-        'user' => 'اسم_المستخدم',
-        'pass' => 'كلمة_المرور',
+        'host' => getenv('MYSQLHOST'),
+        'port' => getenv('MYSQLPORT'),
+        'name' => getenv('MYSQLDATABASE'),
+        'user' => getenv('MYSQLUSER'),
+        'pass' => getenv('MYSQLPASSWORD'),
         'charset' => 'utf8mb4',
     ],
 
