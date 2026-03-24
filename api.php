@@ -13,7 +13,7 @@ if (!is_array($config) || !isset($config['db'])) {
 
 try {
     $port = $config['db']['port'] ?? 3306;
-    $dsn = "mysql:host={$config['db']['host']};port={$port};dbname={$config['db']['name']};charset={$config['db']['charset']}";
+   $dsn = "mysql:host={$config['db']['host']};port={$config['db']['port']};dbname={$config['db']['name']};charset={$config['db']['charset']}";
     $pdo = new PDO(
         $dsn,
         $config['db']['user'],
