@@ -29,13 +29,7 @@ try {
         'message' => 'فشل الاتصال بقاعدة البيانات: ' . $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
     exit;
-} catch (Exception $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'فشل الاتصال بقاعدة البيانات: ' . $e->getMessage()
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+} 
 
 $action = $_GET['action'] ?? '';
 
