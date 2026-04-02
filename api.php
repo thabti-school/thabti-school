@@ -11,41 +11,29 @@ if (!is_array($config) || !isset($config['db'])) {
     exit;
 }
 
-try {
-    $port = $config['db']['port'] ?? 3306;
-  $dsn = "mysql:host={$config['db']['host']};port={$config['db']['port']};dbname={$config['db']['name']};charset={$config['db']['charset']}";
-    $pdo = new PDO(
-        $dsn,
-        $config['db']['user'],
-        $config['db']['pass'],
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]
-    );
-} catch (Exception $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'فشل الاتصال بقاعدة البيانات: ' . $e->getMessage()
-    ], JSON_UNESCAPED_UNICODE);
+function jsonResponse(array $data, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
-} 
+}
 
-$action = $_GET['action'] ?? '';
-
-function getJsonInput() {
+function getJsonInput(): array
+{
     $input = file_get_contents('php://input');
     $decoded = json_decode($input, true);
     return is_array($decoded) ? $decoded : [];
 }
 
-function ensureUploadsDir($dir) {
+function ensureUploadsDir(string $dir): void
+{
     if (!is_dir($dir)) {
         mkdir($dir, 0777, true);
     }
 }
 
-function uploadFile($fileKey, $prefix, $uploadDir) {
+function uploadFile(string $fileKey, string $prefix, string $uploadDir): string
+{
     if (!isset($_FILES[$fileKey])) {
         return '';
     }
@@ -78,21 +66,102 @@ function uploadFile($fileKey, $prefix, $uploadDir) {
     return '';
 }
 
+function createPdo(array $config): PDO
+{
+    $host = trim((string)($config['db']['host'] ?? ''));
+    $port = (string)($config['db']['port'] ?? '3306');
+    $name = trim((string)($config['db']['name'] ?? ''));
+    $user = trim((string)($config['db']['user'] ?? ''));
+    $pass = (string)($config['db']['pass'] ?? '');
+    $charset = trim((string)($config['db']['charset'] ?? 'utf8mb4'));
+
+    if ($host === '' || $name === '' || $user === '') {
+        throw new Exception('بيانات الاتصال بقاعدة البيانات غير مكتملة');
+    }
+
+    $dsn = "mysql:host={$host};port={$port};dbname={$name};charset={$charset}";
+
+    return new PDO(
+        $dsn,
+        $user,
+        $pass,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_TIMEOUT => 10,
+            PDO::ATTR_PERSISTENT => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset}"
+        ]
+    );
+}
+
+function isRetryableDbError(Throwable $e): bool
+{
+    $message = $e->getMessage();
+
+    $patterns = [
+        'server has gone away',
+        'lost connection',
+        'error while sending',
+        'connection refused',
+        'no such file or directory',
+        'temporary failure',
+        'resource temporarily unavailable',
+        'connection timed out',
+    ];
+
+    foreach ($patterns as $pattern) {
+        if (stripos($message, $pattern) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function withDbRetry(callable $callback, array $config)
+{
+    $attempts = 2;
+    $lastException = null;
+
+    for ($i = 1; $i <= $attempts; $i++) {
+        try {
+            $pdo = createPdo($config);
+            return $callback($pdo);
+        } catch (Throwable $e) {
+            $lastException = $e;
+
+            if ($i < $attempts && isRetryableDbError($e)) {
+                usleep(700000);
+                continue;
+            }
+
+            throw $e;
+        }
+    }
+
+    throw $lastException ?? new Exception('حدث خطأ غير متوقع أثناء الاتصال بقاعدة البيانات');
+}
+
+$action = $_GET['action'] ?? '';
+
 switch ($action) {
     case 'list':
         try {
-            $stmt = $pdo->query("SELECT * FROM leave_requests ORDER BY id DESC");
-            $rows = $stmt->fetchAll();
+            $rows = withDbRetry(function (PDO $pdo) {
+                $stmt = $pdo->query("SELECT * FROM leave_requests ORDER BY id DESC");
+                return $stmt->fetchAll();
+            }, $config);
 
-            echo json_encode([
+            jsonResponse([
                 'success' => true,
                 'data' => $rows
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            echo json_encode([
+            ]);
+        } catch (Throwable $e) {
+            jsonResponse([
                 'success' => false,
                 'message' => 'تعذر جلب السجلات: ' . $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+            ], 500);
         }
         break;
 
@@ -117,11 +186,10 @@ switch ($action) {
                 $receiverName === '' ||
                 $relationship === ''
             ) {
-                echo json_encode([
+                jsonResponse([
                     'success' => false,
                     'message' => 'يرجى تعبئة جميع الحقول المطلوبة'
-                ], JSON_UNESCAPED_UNICODE);
-                exit;
+                ], 400);
             }
 
             $uploadDir = __DIR__ . '/uploads';
@@ -130,68 +198,83 @@ switch ($action) {
             $idCardPath = uploadFile('id_card_file', 'id', $uploadDir);
             $appointmentLetterPath = uploadFile('appointment_letter_file', 'appointment', $uploadDir);
 
-            $stmt = $pdo->prepare("
-                INSERT INTO leave_requests
-                (
-                    student_name,
-                    grade,
-                    section,
-                    phone,
-                    reason,
-                    exit_time,
-                    receiver_name,
-                    relationship,
-                    status,
-                    id_card_file,
-                    appointment_letter_file,
-                    whatsapp_opened,
-                    whatsapp_opened_at,
-                    created_at
-                )
-                VALUES
-                (
-                    :student_name,
-                    :grade,
-                    :section,
-                    :phone,
-                    :reason,
-                    :exit_time,
-                    :receiver_name,
-                    :relationship,
-                    :status,
-                    :id_card_file,
-                    :appointment_letter_file,
-                    :whatsapp_opened,
-                    :whatsapp_opened_at,
-                    NOW()
-                )
-            ");
+            withDbRetry(function (PDO $pdo) use (
+                $studentName,
+                $grade,
+                $section,
+                $phone,
+                $reason,
+                $exitTime,
+                $receiverName,
+                $relationship,
+                $idCardPath,
+                $appointmentLetterPath
+            ) {
+                $stmt = $pdo->prepare("
+                    INSERT INTO leave_requests
+                    (
+                        student_name,
+                        grade,
+                        section,
+                        phone,
+                        reason,
+                        exit_time,
+                        receiver_name,
+                        relationship,
+                        status,
+                        id_card_file,
+                        appointment_letter_file,
+                        whatsapp_opened,
+                        whatsapp_opened_at,
+                        created_at
+                    )
+                    VALUES
+                    (
+                        :student_name,
+                        :grade,
+                        :section,
+                        :phone,
+                        :reason,
+                        :exit_time,
+                        :receiver_name,
+                        :relationship,
+                        :status,
+                        :id_card_file,
+                        :appointment_letter_file,
+                        :whatsapp_opened,
+                        :whatsapp_opened_at,
+                        NOW()
+                    )
+                ");
 
-            $stmt->execute([
-                ':student_name' => $studentName,
-                ':grade' => $grade,
-                ':section' => $section,
-                ':phone' => $phone,
-                ':reason' => $reason,
-                ':exit_time' => $exitTime,
-                ':receiver_name' => $receiverName,
-                ':relationship' => $relationship,
-                ':status' => 'معلق',
-                ':id_card_file' => $idCardPath,
-                ':appointment_letter_file' => $appointmentLetterPath,
-                ':whatsapp_opened' => 0,
-                ':whatsapp_opened_at' => null
-            ]);
+                $stmt->execute([
+                    ':student_name' => $studentName,
+                    ':grade' => $grade,
+                    ':section' => $section,
+                    ':phone' => $phone,
+                    ':reason' => $reason,
+                    ':exit_time' => $exitTime,
+                    ':receiver_name' => $receiverName,
+                    ':relationship' => $relationship,
+                    ':status' => 'معلق',
+                    ':id_card_file' => $idCardPath,
+                    ':appointment_letter_file' => $appointmentLetterPath,
+                    ':whatsapp_opened' => 0,
+                    ':whatsapp_opened_at' => null
+                ]);
 
-            echo json_encode([
+                return true;
+            }, $config);
+
+            jsonResponse([
                 'success' => true,
                 'message' => 'تم حفظ الطلب بنجاح'
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            echo json_encode([
+            ]);
+        } catch (Throwable $e) {
+            jsonResponse([
                 'success' => false,
                 'message' => 'تعذر حفظ الطلب: ' . $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+            ], 500);
         }
         break;
 
@@ -200,44 +283,46 @@ switch ($action) {
         $id = (int)($data['id'] ?? 0);
 
         if ($id <= 0) {
-            echo json_encode([
+            jsonResponse([
                 'success' => false,
                 'message' => 'رقم الطلب غير صالح'
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
+            ], 400);
         }
 
         try {
-            $checkStmt = $pdo->prepare("SELECT id FROM leave_requests WHERE id = :id");
-            $checkStmt->execute([':id' => $id]);
-            $exists = $checkStmt->fetch();
+            withDbRetry(function (PDO $pdo) use ($id) {
+                $checkStmt = $pdo->prepare("SELECT id FROM leave_requests WHERE id = :id");
+                $checkStmt->execute([':id' => $id]);
+                $exists = $checkStmt->fetch();
 
-            if (!$exists) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'الطلب غير موجود'
-                ], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
+                if (!$exists) {
+                    jsonResponse([
+                        'success' => false,
+                        'message' => 'الطلب غير موجود'
+                    ], 404);
+                }
 
-            $stmt = $pdo->prepare("
-                UPDATE leave_requests
-                SET status = 'موافق عليه',
-                    whatsapp_opened = 1,
-                    whatsapp_opened_at = NOW()
-                WHERE id = :id
-            ");
-            $stmt->execute([':id' => $id]);
+                $stmt = $pdo->prepare("
+                    UPDATE leave_requests
+                    SET status = 'موافق عليه',
+                        whatsapp_opened = 1,
+                        whatsapp_opened_at = NOW()
+                    WHERE id = :id
+                ");
+                $stmt->execute([':id' => $id]);
 
-            echo json_encode([
+                return true;
+            }, $config);
+
+            jsonResponse([
                 'success' => true,
                 'message' => 'تمت الموافقة على الطلب'
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            echo json_encode([
+            ]);
+        } catch (Throwable $e) {
+            jsonResponse([
                 'success' => false,
                 'message' => 'تعذر تنفيذ الموافقة: ' . $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+            ], 500);
         }
         break;
 
@@ -246,44 +331,46 @@ switch ($action) {
         $id = (int)($data['id'] ?? 0);
 
         if ($id <= 0) {
-            echo json_encode([
+            jsonResponse([
                 'success' => false,
                 'message' => 'رقم الطلب غير صالح'
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
+            ], 400);
         }
 
         try {
-            $checkStmt = $pdo->prepare("SELECT id FROM leave_requests WHERE id = :id");
-            $checkStmt->execute([':id' => $id]);
-            $exists = $checkStmt->fetch();
+            withDbRetry(function (PDO $pdo) use ($id) {
+                $checkStmt = $pdo->prepare("SELECT id FROM leave_requests WHERE id = :id");
+                $checkStmt->execute([':id' => $id]);
+                $exists = $checkStmt->fetch();
 
-            if (!$exists) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'الطلب غير موجود'
-                ], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
+                if (!$exists) {
+                    jsonResponse([
+                        'success' => false,
+                        'message' => 'الطلب غير موجود'
+                    ], 404);
+                }
 
-            $stmt = $pdo->prepare("
-                UPDATE leave_requests
-                SET status = 'مرفوض',
-                    whatsapp_opened = 1,
-                    whatsapp_opened_at = NOW()
-                WHERE id = :id
-            ");
-            $stmt->execute([':id' => $id]);
+                $stmt = $pdo->prepare("
+                    UPDATE leave_requests
+                    SET status = 'مرفوض',
+                        whatsapp_opened = 1,
+                        whatsapp_opened_at = NOW()
+                    WHERE id = :id
+                ");
+                $stmt->execute([':id' => $id]);
 
-            echo json_encode([
+                return true;
+            }, $config);
+
+            jsonResponse([
                 'success' => true,
                 'message' => 'تم رفض الطلب'
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            echo json_encode([
+            ]);
+        } catch (Throwable $e) {
+            jsonResponse([
                 'success' => false,
                 'message' => 'تعذر تنفيذ الرفض: ' . $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+            ], 500);
         }
         break;
 
@@ -292,63 +379,65 @@ switch ($action) {
         $id = (int)($data['id'] ?? 0);
 
         if ($id <= 0) {
-            echo json_encode([
+            jsonResponse([
                 'success' => false,
                 'message' => 'رقم الطلب غير صالح'
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
+            ], 400);
         }
 
         try {
-            $selectStmt = $pdo->prepare("
-                SELECT id_card_file, appointment_letter_file
-                FROM leave_requests
-                WHERE id = :id
-            ");
-            $selectStmt->execute([':id' => $id]);
-            $record = $selectStmt->fetch();
+            withDbRetry(function (PDO $pdo) use ($id) {
+                $selectStmt = $pdo->prepare("
+                    SELECT id_card_file, appointment_letter_file
+                    FROM leave_requests
+                    WHERE id = :id
+                ");
+                $selectStmt->execute([':id' => $id]);
+                $record = $selectStmt->fetch();
 
-            if (!$record) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'الطلب غير موجود'
-                ], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
-
-            $stmt = $pdo->prepare("DELETE FROM leave_requests WHERE id = :id");
-            $stmt->execute([':id' => $id]);
-
-            if (!empty($record['id_card_file'])) {
-                $filePath = __DIR__ . '/' . $record['id_card_file'];
-                if (is_file($filePath)) {
-                    @unlink($filePath);
+                if (!$record) {
+                    jsonResponse([
+                        'success' => false,
+                        'message' => 'الطلب غير موجود'
+                    ], 404);
                 }
-            }
 
-            if (!empty($record['appointment_letter_file'])) {
-                $filePath = __DIR__ . '/' . $record['appointment_letter_file'];
-                if (is_file($filePath)) {
-                    @unlink($filePath);
+                $stmt = $pdo->prepare("DELETE FROM leave_requests WHERE id = :id");
+                $stmt->execute([':id' => $id]);
+
+                if (!empty($record['id_card_file'])) {
+                    $filePath = __DIR__ . '/' . $record['id_card_file'];
+                    if (is_file($filePath)) {
+                        @unlink($filePath);
+                    }
                 }
-            }
 
-            echo json_encode([
+                if (!empty($record['appointment_letter_file'])) {
+                    $filePath = __DIR__ . '/' . $record['appointment_letter_file'];
+                    if (is_file($filePath)) {
+                        @unlink($filePath);
+                    }
+                }
+
+                return true;
+            }, $config);
+
+            jsonResponse([
                 'success' => true,
                 'message' => 'تم حذف الطلب'
-            ], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            echo json_encode([
+            ]);
+        } catch (Throwable $e) {
+            jsonResponse([
                 'success' => false,
                 'message' => 'تعذر حذف الطلب: ' . $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE);
+            ], 500);
         }
         break;
 
     default:
-        echo json_encode([
+        jsonResponse([
             'success' => false,
             'message' => 'إجراء غير صالح'
-        ], JSON_UNESCAPED_UNICODE);
+        ], 400);
         break;
 }
