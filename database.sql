@@ -21,5 +21,11 @@ CREATE TABLE leave_requests (
     appointment_letter_file VARCHAR(255) DEFAULT NULL,
     whatsapp_opened TINYINT(1) NOT NULL DEFAULT 0,
     whatsapp_opened_at DATETIME DEFAULT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_status (status),
+    INDEX idx_student_name (student_name),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
