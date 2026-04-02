@@ -1,9 +1,3 @@
-CREATE DATABASE IF NOT EXISTS thabti
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-USE thabti;
-
 DROP TABLE IF EXISTS leave_requests;
 
 CREATE TABLE leave_requests (
