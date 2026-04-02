@@ -2,15 +2,15 @@
 
 return [
     'db' => [
-        'host' => getenv('MYSQLHOST'),
-        'port' => getenv('MYSQLPORT'),
-        'name' => getenv('MYSQLDATABASE'),
-        'user' => getenv('MYSQLUSER'),
-        'pass' => getenv('MYSQLPASSWORD'),
+        'host' => getenv('MYSQLHOST') ?: '',
+        'port' => getenv('MYSQLPORT') ?: '3306',
+        'name' => getenv('MYSQLDATABASE') ?: '',
+        'user' => getenv('MYSQLUSER') ?: '',
+        'pass' => getenv('MYSQLPASSWORD') ?: '',
         'charset' => 'utf8mb4',
     ],
 
-    'admin_password' => 'Thabti@2023',
+    'admin_password' => getenv('ADMIN_PASSWORD') ?: 'Thabti@2023',
 
     'whatsapp' => [
         'enabled' => false,
