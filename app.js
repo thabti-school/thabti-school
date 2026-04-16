@@ -57,6 +57,21 @@ async function safeJson(response) {
   }
 }
 
+function formatDateTime(dateString) {
+  if (!dateString) return '-';
+
+  const date = new Date(dateString);
+
+  if (isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return date.toLocaleDateString('ar-SA') + ' - ' + date.toLocaleTimeString('ar-SA', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
@@ -352,6 +367,7 @@ function renderAdminRecordsList() {
           <div><span class="text-slate-500">وقت الخروج:</span> <span class="font-medium">${record.exit_time || ''}</span></div>
           <div><span class="text-slate-500">المستلم:</span> <span class="font-medium">${record.receiver_name || ''}</span></div>
           <div><span class="text-slate-500">الصلة:</span> <span class="font-medium">${record.relationship || ''}</span></div>
+          <div class="col-span-2"><span class="text-slate-500">تاريخ التقديم:</span> <span class="font-medium">${formatDateTime(record.created_at)}</span></div>
         </div>
 
         <div class="mb-4 flex gap-2 flex-wrap">
@@ -732,6 +748,7 @@ printBtn.addEventListener('click', () => {
             <th>وقت الخروج</th>
             <th>المستلم</th>
             <th>الصلة</th>
+            <th>تاريخ التقديم</th>
             <th>المرفقات</th>
             <th>الحالة</th>
           </tr>
@@ -752,6 +769,7 @@ printBtn.addEventListener('click', () => {
                 <td>${r.exit_time}</td>
                 <td>${r.receiver_name}</td>
                 <td>${r.relationship}</td>
+                <td>${formatDateTime(r.created_at)}</td>
                 <td>${(r.id_card_file || r.appointment_letter_file) ? '✓ موجودة' : '—'}</td>
                 <td><span class="${statusClass}">${r.status}</span></td>
               </tr>
