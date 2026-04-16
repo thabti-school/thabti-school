@@ -748,7 +748,7 @@ printBtn.addEventListener('click', () => {
             <th>وقت الخروج</th>
             <th>المستلم</th>
             <th>الصلة</th>
-            <th>تاريخ التقديم</th>
+            <th>تاريخ الطلب</th>
             <th>المرفقات</th>
             <th>الحالة</th>
           </tr>
