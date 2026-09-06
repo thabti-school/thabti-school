@@ -412,17 +412,22 @@ case 'create':
             'id' => (int)$newId
         ]);
 
-    } catch (Throwable $e) {
+   } catch (Throwable $e) {
 
-        error_log($e->getMessage());
+    $errorMessage = $e->getMessage();
 
-        jsonResponse([
-            'success' => false,
-            'message' =>
-                'تعذر حفظ الطلب. يرجى المحاولة مرة أخرى.'
-        ], 500);
-    }
+    error_log(
+        'CREATE REQUEST ERROR: ' .
+        $errorMessage
+    );
 
+    jsonResponse([
+        'success' => false,
+        'message' =>
+            'خطأ قاعدة البيانات: ' .
+            $errorMessage
+    ], 500);
+}
 break;
 
 /* =========================
