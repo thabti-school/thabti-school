@@ -1,23 +1,18 @@
 <?php
 
 return [
-    'db' => [
-        'host' => getenv('MYSQLHOST') ?: '',
-        'port' => getenv('MYSQLPORT') ?: '3306',
-        'name' => getenv('MYSQLDATABASE') ?: '',
-        'user' => getenv('MYSQLUSER') ?: '',
-        'pass' => getenv('MYSQLPASSWORD') ?: '',
-        'charset' => 'utf8mb4',
-    ],
 
-    'admin_password' => getenv('ADMIN_PASSWORD') ?: 'Thabti@2023',
+    'database_url' => getenv('DATABASE_URL') ?: '',
+
+    'admin_password' => getenv('ADMIN_PASSWORD') ?: '',
 
     'whatsapp' => [
         'enabled' => false,
-        'access_token' => '',
-        'phone_number_id' => '',
+        'access_token' => getenv('WHATSAPP_ACCESS_TOKEN') ?: '',
+        'phone_number_id' => getenv('WHATSAPP_PHONE_NUMBER_ID') ?: '',
         'approved_template' => '',
         'rejected_template' => '',
         'language_code' => 'ar',
     ],
+
 ];
