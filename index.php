@@ -178,6 +178,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=final-20260907"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
