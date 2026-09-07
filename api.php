@@ -223,6 +223,12 @@ function withDbRetry(callable $callback, array $config)
    Uploads
 ========================= */
 
+function hasUpload(string $fileKey): bool
+{
+    return isset($_FILES[$fileKey])
+        && (($_FILES[$fileKey]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE);
+}
+
 function ensureUploadsDir(string $dir): void
 {
     if (!is_dir($dir)) {
@@ -322,11 +328,15 @@ switch ($action) {
                 $version = $pdo->query("SELECT version()")->fetchColumn();
                 $count = $pdo->query("SELECT COUNT(*) FROM leave_requests")->fetchColumn();
 
+                $uploadDir = __DIR__ . '/uploads';
+
                 return [
                     'database' => 'connected',
                     'driver' => $pdo->getAttribute(PDO::ATTR_DRIVER_NAME),
                     'version' => $version,
-                    'records' => (int)$count
+                    'records' => (int)$count,
+                    'uploads_exists' => is_dir($uploadDir),
+                    'uploads_writable' => is_dir($uploadDir) ? is_writable($uploadDir) : is_writable(__DIR__)
                 ];
             }, $config);
 
@@ -480,7 +490,12 @@ switch ($action) {
             }
 
             $uploadDir = __DIR__ . '/uploads';
-            ensureUploadsDir($uploadDir);
+
+            // لا نحاول إنشاء/فحص مجلد uploads إلا إذا كان هناك مرفق فعلي.
+            // هذا يمنع فشل الطلبات العادية بسبب صلاحيات مجلد المرفقات.
+            if (hasUpload('id_card_file') || hasUpload('appointment_letter_file')) {
+                ensureUploadsDir($uploadDir);
+            }
 
             $idCardPath = uploadFile('id_card_file', 'id', $uploadDir);
             $appointmentPath = uploadFile(
@@ -575,10 +590,17 @@ switch ($action) {
 
             error_log('CREATE REQUEST ERROR: ' . $e->getMessage());
 
-            jsonResponse([
+            $response = [
                 'success' => false,
                 'message' => 'تعذر حفظ الطلب. يرجى المحاولة مرة أخرى.'
-            ], 500);
+            ];
+
+            // للتشخيص المؤقت فقط: أضيفي APP_DEBUG=1 في Render لمعرفة السبب الحقيقي.
+            if (getenv('APP_DEBUG') === '1') {
+                $response['details'] = $e->getMessage();
+            }
+
+            jsonResponse($response, 500);
         }
         break;
 
