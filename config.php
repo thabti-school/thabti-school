@@ -1,9 +1,10 @@
 <?php
 
 return [
-
+    // رابط PostgreSQL يُضاف في Render / Railway كمتغير بيئة
     'database_url' => getenv('DATABASE_URL') ?: '',
 
+    // كلمة مرور الإدارة لا تُكتب داخل GitHub
     'admin_password' => getenv('ADMIN_PASSWORD') ?: '',
 
     'whatsapp' => [
@@ -14,5 +15,4 @@ return [
         'rejected_template' => '',
         'language_code' => 'ar',
     ],
-
 ];
