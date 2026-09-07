@@ -87,10 +87,10 @@
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
             </div>
             <h1 id="mainTitle" class="text-2xl font-bold text-gray-800">سجل الاستئذان الإلكتروني</h1>
-            <p id="subtitle" class="text-sm text-slate-500">نظام حديث لتسجيل طلبات خروج الطلاب</p>
+            <p id="subtitle" class="text-sm text-slate-500">نظام حديث لتسجيل طلبات خروج الطالبات</p>
           </div>
           <form id="leaveForm" class="space-y-5" enctype="multipart/form-data">
-            <div class="space-y-2"><label for="studentName" class="block text-sm font-semibold text-gray-700">اسم الطالبة</label><input type="text" id="studentName" required class="input-field w-full p-4 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none" placeholder="أدخل اسم الطالب"></div>
+            <div class="space-y-2"><label for="studentName" class="block text-sm font-semibold text-gray-700">اسم الطالبة</label><input type="text" id="studentName" required class="input-field w-full p-4 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none" placeholder="أدخل اسم الطالبة"></div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2"><label for="grade" class="block text-sm font-semibold text-gray-700">الصف</label><input type="text" id="grade" required class="input-field w-full p-4 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none" placeholder="مثال: الخامس"></div>
               <div class="space-y-2"><label for="section" class="block text-sm font-semibold text-gray-700">الشعبة</label><input type="text" id="section" required class="input-field w-full p-4 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none" placeholder="مثال: ب"></div>
@@ -107,26 +107,18 @@
               <div class="space-y-2">
                 <label for="idCardFile" class="block text-sm font-semibold text-gray-700">📷 صورة البطاقة الشخصية</label>
                 <div class="relative">
-                  <input type="file" id="idCardFile" accept="image/*,.pdf" class="hidden">
+                  <input type="file" id="idCardFile" accept=".jpg,.jpeg,.png,.pdf" class="hidden">
                   <button type="button" id="idCardBtn" class="w-full p-4 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-3 text-indigo-600 font-semibold">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg><span id="idCardText">اختر صورة البطاقة</span>
                   </button>
                   <div id="idCardPreview" class="mt-2 hidden"><div class="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200"><span id="idCardFileName" class="text-sm text-green-700 font-semibold">✓ تم اختيار الملف</span><button type="button" id="idCardRemove" class="text-red-500 hover:text-red-700 font-bold">✕</button></div></div>
                 </div>
               </div>
-              <div class="space-y-2">
               <div id="appointmentLetterContainer" class="space-y-2 hidden">
-    <label for="appointmentLetterFile"
-        class="block text-sm font-semibold text-gray-700">
-        📄 رسالة الموعد
-        <span class="text-red-500">*</span>
-    </label>
-
-    <p class="text-xs text-red-500">
-        إرفاق رسالة الموعد إلزامي عند اختيار موعد مستشفى
-    </p>
+                <label for="appointmentLetterFile" class="block text-sm font-semibold text-gray-700">📄 رسالة الموعد <span class="text-red-500">*</span></label>
+                <p class="text-xs text-red-500">إرفاق رسالة الموعد إلزامي عند اختيار «موعد مستشفى».</p>
                 <div class="relative">
-                  <input type="file" id="appointmentLetterFile" accept="image/*,.pdf,.doc,.docx" class="hidden">
+                  <input type="file" id="appointmentLetterFile" accept=".jpg,.jpeg,.png,.pdf" class="hidden">
                   <button type="button" id="appointmentLetterBtn" class="w-full p-4 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 hover:bg-purple-100 transition-colors flex items-center justify-center gap-3 text-purple-600 font-semibold">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><span id="appointmentLetterText">اختر رسالة الموعد</span>
                   </button>
@@ -179,13 +171,13 @@
             <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4"><p class="text-slate-600 text-sm mb-1">موافق عليه</p><p id="approvedRequests" class="text-3xl font-bold text-green-600">0</p></div>
             <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-4"><p class="text-slate-600 text-sm mb-1">رسائل واتساب المفتوحة</p><p id="whatsappOpenedRequests" class="text-3xl font-bold text-emerald-600">0</p></div>
           </div>
-          <div class="flex gap-3"><input type="text" id="searchInput" placeholder="ابحث عن اسم الطالب..." class="input-field flex-1 p-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none"><select id="filterStatus" class="input-field p-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none cursor-pointer"><option value="">جميع الحالات</option><option value="معلق">معلق</option><option value="موافق عليه">موافق عليه</option><option value="مرفوض">مرفوض</option></select></div>
+          <div class="flex gap-3"><input type="text" id="searchInput" placeholder="ابحث عن اسم الطالبة..." class="input-field flex-1 p-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none"><select id="filterStatus" class="input-field p-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white outline-none cursor-pointer"><option value="">جميع الحالات</option><option value="معلق">معلق</option><option value="موافق عليه">موافق عليه</option><option value="مرفوض">مرفوض</option></select></div>
         </div>
         <div id="adminRecordsList" class="p-6 space-y-4 max-h-96 overflow-y-auto"><p class="text-center text-slate-400 py-8">لا توجد طلبات حتى الآن</p></div>
       </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=final-20260907"></script>
 </body>
 </html>
