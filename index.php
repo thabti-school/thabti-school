@@ -115,7 +115,16 @@
                 </div>
               </div>
               <div class="space-y-2">
-                <label for="appointmentLetterFile" class="block text-sm font-semibold text-gray-700">📄 رسالة الموعد</label>
+              <div id="appointmentLetterContainer" class="space-y-2 hidden">
+    <label for="appointmentLetterFile"
+        class="block text-sm font-semibold text-gray-700">
+        📄 رسالة الموعد
+        <span class="text-red-500">*</span>
+    </label>
+
+    <p class="text-xs text-red-500">
+        إرفاق رسالة الموعد إلزامي عند اختيار موعد مستشفى
+    </p>
                 <div class="relative">
                   <input type="file" id="appointmentLetterFile" accept="image/*,.pdf,.doc,.docx" class="hidden">
                   <button type="button" id="appointmentLetterBtn" class="w-full p-4 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 hover:bg-purple-100 transition-colors flex items-center justify-center gap-3 text-purple-600 font-semibold">
