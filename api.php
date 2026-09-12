@@ -2,12 +2,17 @@
 
 declare(strict_types=1);
 
+/*
+ * جلسة الإدارة:
+ * ضبط Cookie قبل session_start حتى تبقى جلسة الإدارة صالحة
+ * على HTTPS في Render.
+ */
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
 
 session_name('THABTI_ADMIN_SESSION');
 session_set_cookie_params([
-    'lifetime' => 60 * 60 * 8,
+    'lifetime' => 60 * 60 * 8, // 8 ساعات
     'path' => '/',
     'secure' => $isHttps,
     'httponly' => true,
