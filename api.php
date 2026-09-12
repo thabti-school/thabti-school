@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+session_name('THABTI_ADMIN_SESSION');
+session_set_cookie_params([
+    'lifetime' => 60 * 60 * 8,
+    'path' => '/',
+    'secure' => $isHttps,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
 session_start();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -378,10 +390,14 @@ switch ($action) {
 
         session_regenerate_id(true);
         $_SESSION['is_admin'] = true;
+        $_SESSION['admin_login_at'] = time();
+
+        session_write_close();
 
         jsonResponse([
             'success' => true,
-            'message' => 'تم تسجيل دخول الإدارة بنجاح'
+            'message' => 'تم تسجيل دخول الإدارة بنجاح',
+            'authenticated' => true
         ]);
         break;
 
@@ -390,7 +406,8 @@ switch ($action) {
     case 'admin_session':
         jsonResponse([
             'success' => true,
-            'authenticated' => isAdminLoggedIn()
+            'authenticated' => isAdminLoggedIn(),
+            'login_at' => $_SESSION['admin_login_at'] ?? null
         ]);
         break;
 
