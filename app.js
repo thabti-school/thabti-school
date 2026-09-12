@@ -1,4 +1,3 @@
-const ADMIN_PASSWORD = 'Thabti@2023';
 let records = [];
 let userRole = null;
 let idCardFile = null;
@@ -109,10 +108,19 @@ function showView(view) {
 }
 
 async function fetchRecords() {
-  const response = await fetch('api.php?action=list');
+  const response = await fetch('api.php?action=list', {
+    method: 'GET',
+    credentials: 'same-origin',
+    cache: 'no-store'
+  });
+
   const result = await safeJson(response);
 
-  if (!result.success) {
+  if (response.status === 401 || !result.success) {
+    if (response.status === 401) {
+      userRole = null;
+      showView('password');
+    }
     throw new Error(result.message || 'تعذر تحميل السجلات');
   }
 
@@ -425,6 +433,7 @@ async function approveRequestFull(record) {
   try {
     const response = await fetch('api.php?action=approve', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: record.id })
     });
@@ -448,6 +457,7 @@ async function rejectRequestFull(record) {
   try {
     const response = await fetch('api.php?action=reject', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: record.id })
     });
@@ -529,6 +539,7 @@ window.deleteRecord = async function(id) {
   try {
     const response = await fetch('api.php?action=delete', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
     });
@@ -621,6 +632,7 @@ leaveForm.addEventListener('submit', async e => {
   try {
     const response = await fetch('api.php?action=create', {
       method: 'POST',
+      credentials: 'same-origin',
       body: formData
     });
 
@@ -650,8 +662,6 @@ leaveForm.addEventListener('submit', async e => {
 
     showView('success');
     showToast('تم تقديم الطلب بنجاح', 'success');
-
-    await fetchRecords();
   } catch (error) {
     showToast(error.message, 'error');
   } finally {
@@ -672,28 +682,62 @@ backToLoginFromSuccessBtn.addEventListener('click', () => showView('login'));
 backFromPasswordBtn.addEventListener('click', () => showView('login'));
 newRequestBtn.addEventListener('click', () => showView('form'));
 
-adminLogoutBtn.addEventListener('click', () => {
-  userRole = null;
-  showView('login');
+adminLogoutBtn.addEventListener('click', async () => {
+  try {
+    await fetch('api.php?action=admin_logout', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
+  } catch (error) {
+    console.warn('تعذر إنهاء الجلسة على الخادم:', error);
+  } finally {
+    userRole = null;
+    records = [];
+    showView('login');
+    showToast('تم تسجيل الخروج', 'success');
+  }
 });
 
 adminPasswordForm.addEventListener('submit', async e => {
   e.preventDefault();
 
-  if (adminPassword.value !== ADMIN_PASSWORD) {
-    passwordError.textContent = 'كلمة المرور غير صحيحة!';
+  passwordError.classList.add('hidden');
+  const password = adminPassword.value.trim();
+
+  if (!password) {
+    passwordError.textContent = 'يرجى إدخال كلمة مرور الإدارة';
     passwordError.classList.remove('hidden');
     return;
   }
 
-  userRole = 'admin';
-  showView('records');
-
   try {
+    const response = await fetch('api.php?action=admin_login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password })
+    });
+
+    const result = await safeJson(response);
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'تعذر تسجيل الدخول');
+    }
+
+    userRole = 'admin';
+    adminPassword.value = '';
+
     await fetchRecords();
     renderAdminRecordsList();
+    showView('records');
+    showToast('تم تسجيل دخول الإدارة بنجاح', 'success');
+
   } catch (error) {
-    showToast(error.message, 'error');
+    userRole = null;
+    passwordError.textContent = error.message || 'تعذر تسجيل الدخول';
+    passwordError.classList.remove('hidden');
   }
 });
 
@@ -795,6 +839,25 @@ setInterval(() => {
   fetch('ping.php').catch(() => {});
 }, 4 * 60 * 1000);
 
-window.onload = () => {
+window.onload = async () => {
   showView('login');
+
+  try {
+    const response = await fetch('api.php?action=admin_session', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+
+    const result = await safeJson(response);
+
+    if (result.success && result.authenticated === true) {
+      userRole = 'admin';
+      await fetchRecords();
+      renderAdminRecordsList();
+      showView('records');
+    }
+  } catch (error) {
+    console.warn('تعذر التحقق من جلسة الإدارة:', error);
+  }
 };
