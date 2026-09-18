@@ -45,6 +45,8 @@ const appointmentLetterText = document.getElementById('appointmentLetterText');
 const appointmentLetterPreview = document.getElementById('appointmentLetterPreview');
 const appointmentLetterFileName = document.getElementById('appointmentLetterFileName');
 const appointmentLetterRemove = document.getElementById('appointmentLetterRemove');
+const appointmentLetterContainer = document.getElementById('appointmentLetterContainer');
+const reasonSelect = document.getElementById('reason');
 
 async function safeJson(response) {
   const text = await response.text();
@@ -581,6 +583,31 @@ idCardRemove.addEventListener('click', e => {
   idCardPreview.classList.add('hidden');
 });
 
+
+function updateAppointmentLetterVisibility() {
+  const isHospital = reasonSelect && reasonSelect.value === 'موعد مستشفى';
+
+  if (appointmentLetterContainer) {
+    appointmentLetterContainer.classList.toggle('hidden', !isHospital);
+  }
+
+  if (appointmentLetterFileInput) {
+    appointmentLetterFileInput.required = isHospital;
+  }
+
+  if (!isHospital) {
+    appointmentLetterFile = null;
+    appointmentLetterFileInput.value = '';
+    appointmentLetterText.textContent = 'اختر رسالة الموعد';
+    appointmentLetterPreview.classList.add('hidden');
+  }
+}
+
+if (reasonSelect) {
+  reasonSelect.addEventListener('change', updateAppointmentLetterVisibility);
+  updateAppointmentLetterVisibility();
+}
+
 appointmentLetterBtn.addEventListener('click', e => {
   e.preventDefault();
   appointmentLetterFileInput.click();
@@ -606,6 +633,13 @@ appointmentLetterRemove.addEventListener('click', e => {
 
 leaveForm.addEventListener('submit', async e => {
   e.preventDefault();
+
+  if (reasonSelect && reasonSelect.value === 'موعد مستشفى' && !appointmentLetterFileInput.files[0]) {
+    showToast('رسالة الموعد إلزامية عند اختيار موعد مستشفى', 'error');
+    appointmentLetterContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
 
   const formData = new FormData();
   formData.append('student_name', document.getElementById('studentName').value.trim());
@@ -659,6 +693,7 @@ leaveForm.addEventListener('submit', async e => {
     appointmentLetterText.textContent = 'اختر رسالة الموعد';
     idCardPreview.classList.add('hidden');
     appointmentLetterPreview.classList.add('hidden');
+    updateAppointmentLetterVisibility();
 
     showView('success');
     showToast('تم تقديم الطلب بنجاح', 'success');
